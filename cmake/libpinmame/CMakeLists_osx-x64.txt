@@ -580,12 +580,14 @@ target_include_directories(pinmame PUBLIC
    src/cpu/m68000/generated_by_m68kmake
    src/ios
    src/libpinmame
+   /opt/homebrew/Cellar/openal-soft/1.22.2/include
 )
 
 find_package(ZLIB)
 
 target_link_libraries(pinmame
    ZLIB::ZLIB
+   /opt/homebrew/Cellar/openal-soft/1.22.2/lib/libopenal.dylib
 )
 
 set_target_properties(pinmame PROPERTIES

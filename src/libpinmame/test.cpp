@@ -4,7 +4,11 @@
 #include <string.h>
 #include <chrono>
 #include <thread>
+#include <queue>
 #include "libpinmame.h"
+
+#include <AL/al.h>
+#include <AL/alc.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define CLEAR_SCREEN "cls"
@@ -14,6 +18,15 @@
 
 typedef unsigned char UINT8;
 typedef unsigned short UINT16;
+
+#define MAX_AUDIO_BUFFERS 4
+#define MAX_AUDIO_QUEUE_SIZE 10
+
+ALuint _audioSource;
+ALuint _audioBuffers[MAX_AUDIO_BUFFERS];
+std::queue<void*> _audioQueue;
+int _audioChannels;
+int _audioSampleRate;
 
 void DumpDmd(int index, UINT8* p_displayData, PinmameDisplayLayout* p_displayLayout) {
 	for (int y = 0; y < p_displayLayout->height; y++) {
@@ -226,10 +239,73 @@ int CALLBACK OnAudioAvailable(PinmameAudioInfo* p_audioInfo) {
 		p_audioInfo->framesPerSecond,
 		p_audioInfo->samplesPerFrame,
 		p_audioInfo->bufferSize);
+
+	_audioChannels = p_audioInfo->channels;
+	_audioSampleRate = (int) p_audioInfo->sampleRate;
+
+	for (int index = 0; index < MAX_AUDIO_BUFFERS; index++) {
+		void* p_buffer = malloc(p_audioInfo->samplesPerFrame * _audioChannels * sizeof(int16_t));
+		memset(p_buffer, 0, p_audioInfo->samplesPerFrame * _audioChannels * sizeof(int16_t));
+
+		alBufferData(_audioBuffers[index],
+			_audioChannels == 2 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16,
+			p_buffer, p_audioInfo->samplesPerFrame * _audioChannels * sizeof(int16_t), _audioSampleRate);
+	}
+
+	alSourceQueueBuffers(_audioSource, MAX_AUDIO_BUFFERS, _audioBuffers);
+	alSourcePlay(_audioSource);
+
 	return p_audioInfo->samplesPerFrame;
 }
 
 int CALLBACK OnAudioUpdated(void* p_buffer, int samples) {
+	if (_audioQueue.size() >= MAX_AUDIO_QUEUE_SIZE) {
+		while (!_audioQueue.empty()) {
+			void* p_destBuffer = _audioQueue.front();
+
+			free(p_destBuffer);
+			_audioQueue.pop();
+		}
+	}
+
+	void* p_destBuffer = malloc(samples * _audioChannels * sizeof(int16_t));
+	memcpy(p_destBuffer, p_buffer, samples * _audioChannels * sizeof(int16_t));
+
+	_audioQueue.push(p_destBuffer);
+
+	ALint buffersProcessed;
+	alGetSourcei(_audioSource, AL_BUFFERS_PROCESSED, &buffersProcessed);
+
+	if (buffersProcessed <= 0) {
+		return samples;
+	}
+
+	while (buffersProcessed > 0) {
+		ALuint buffer = 0;
+		alSourceUnqueueBuffers(_audioSource, 1, &buffer);
+
+		if (_audioQueue.size() > 0) {
+			void* p_destBuffer = _audioQueue.front();
+
+			alBufferData(buffer,
+				_audioChannels == 2 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16,
+				p_destBuffer, samples * _audioChannels * sizeof(int16_t), _audioSampleRate);
+
+			free(p_destBuffer);
+			_audioQueue.pop();
+		}
+
+		alSourceQueueBuffers(_audioSource, 1, &buffer);
+		buffersProcessed--;
+	}
+
+	ALint state;
+	alGetSourcei(_audioSource, AL_SOURCE_STATE, &state);
+
+	if (state != AL_PLAYING) {
+		alSourcePlay(_audioSource);
+	}
+
 	return samples;
 }
 
@@ -268,8 +344,17 @@ int CALLBACK IsKeyPressed(PINMAME_KEYCODE keycode) {
 int main(int, char**) {
 	system(CLEAR_SCREEN);
 
+	const ALCchar *defaultDeviceName = alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
+	ALCdevice *device = alcOpenDevice(defaultDeviceName);
+
+	ALCcontext *context = alcCreateContext(device, NULL);
+	alcMakeContextCurrent(context);
+
+	alGenSources((ALuint)1, &_audioSource);
+	alGenBuffers(MAX_AUDIO_BUFFERS, _audioBuffers);
+
 	PinmameConfig config = {
-		AUDIO_FORMAT_FLOAT,
+		AUDIO_FORMAT_INT16,
 		44100,
 		"",
 		&OnStateUpdated,
