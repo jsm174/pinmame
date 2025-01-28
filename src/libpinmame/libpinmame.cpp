@@ -1411,3 +1411,36 @@ PINMAMEAPI void PinmameSetUserData(const void* p_userData)
 {
 	_p_userData = (void*)p_userData;
 }
+
+/******************************************************
+ * PinmameGetStateBlock
+ ******************************************************/
+
+PINMAMEAPI int PinmameGetStateBlock(PinMame::core_tGlobalOutputState** pp_outputState)
+{
+	if (!_isRunning)
+		return -1;
+
+	PinMame::core_tGlobalOutputState* p_outputState = (PinMame::core_tGlobalOutputState*)core_getOutputState(CORE_STATE_REQMASK_ALL);
+	if (!p_outputState)
+		return -1;
+
+	*pp_outputState = p_outputState;
+
+	return 0;
+}
+
+/******************************************************
+ * PinmameUpdateStateBlock
+ ******************************************************/
+
+PINMAMEAPI int PinmameUpdateStateBlock(const unsigned int updateMask)
+{
+	if (!_isRunning)
+		return -1;
+
+	if (!core_getOutputState(updateMask))
+		return -1;
+
+	return 0;
+}

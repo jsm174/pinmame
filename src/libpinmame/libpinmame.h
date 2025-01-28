@@ -17,6 +17,91 @@
 #define PINMAME_MAX_MECHSW 20
 #define PINMAME_ACCUMULATOR_SAMPLES 8192 // from mixer.c
 
+namespace PinMame
+{
+   #pragma warning(disable : 4200) // 0 length array is a non standard extension used intentionally, so disable corresponding warning
+   typedef struct
+   {
+      double updateTimestamp;
+      unsigned int nOutputs;
+      uint32_t outputBitset[]; // Bitset array of nOutputs bits with their current binary state
+   } core_tBinaryState;
+   #define CORE_DEVICE_STATE_TYPE_CUSTOM          1 // Custom state defined by each driver (value maybe either binary of 0/1 or 0/255, or modulated between 0..255)
+   #define CORE_DEVICE_STATE_TYPE_BULB            2 // Bulb state defined by its relative luminance and average filament temperature
+   #define CORE_DEVICE_STATE_TYPE_LED             3 // LED state defined by its relative luminance
+   #define CORE_DEVICE_STATE_TYPE_SEGMENTS        4 // LED or VFD state defined by a segment layout and the relative luminance of each segment
+   typedef struct
+   {
+      unsigned int deviceType;
+      union
+      {
+         // CORE_DEVICE_STATE_TYPE_DS
+         uint8_t customState;            // Custom value, depending on each driver definition
+         // CORE_DEVICE_STATE_TYPE_BULB
+         struct
+         {
+            float luminance;           // relative luminance to bulb rating (equals 1.f when bulb is under its rating voltage after heating stabilization)
+            float filamentTemperature; // perceived filament temperature (equals to bulb filament rating when bulb is under its rating voltage after heating stabilization)
+         } bulb;
+         // CORE_DEVICE_STATE_TYPE_LED
+         float ledLuminance;           // relative luminance to bulb design (equals 1.f when LED is pulsed at its designed PWM)
+         // CORE_DEVICE_STATE_TYPE_SEGMENTS
+         struct
+         {
+            unsigned int type;   // see CORE_SEG16, ...
+            float luminance[16]; // relative luminance of each segment (from 7 to 16)
+         } segment;
+      };
+   } core_tDeviceSingleState;
+   #pragma warning(disable : 4200) // 0 length array is a non standard extension used intentionally, so disable corresponding warning
+   typedef struct
+   {
+      double updateTimestamp;
+      unsigned int nDevices;
+      unsigned int dataStride;
+      core_tDeviceSingleState states[]; // array of nDevices * dataStride with the current device state
+   } core_tDeviceState;
+   #define CORE_FRAME_LUM             1 // Linear luminance (for monochrome DMD)
+   #define CORE_FRAME_RGB             2 // sRGB (for video frame)
+   #define CORE_FRAME_BP2             3 // 2 bitplanes, used to identify frames
+   #define CORE_FRAME_BP4             4 // 4 bitplanes, used to identify frames
+   #pragma warning(disable : 4200) // 0 length array is a non standard extension used intentionally, so disable corresponding warning
+   typedef struct
+   {
+      unsigned int structSize; // Struct size including header and frame data in bytes (for safe DMD/Display array iteration)
+      unsigned int displayId; // Unique Id, shared between render frame and raw frame used for frame identification
+      double updateTimestamp;
+      unsigned int width;
+      unsigned int height;
+      unsigned int dataFormat;
+      unsigned int frameId;
+      uint8_t frameData[]; // The display frame data which size depends on width, height and data format
+   } core_tFrameState;
+   typedef struct
+   {
+      unsigned int nDisplays;
+      // core_tFrameState displays[]; // Array of nDisplays * core_tFrameState (can't be directly declared since frame size is undefined)
+   } core_tDisplayState;
+   typedef struct
+   {
+      unsigned int versionID;
+      core_tBinaryState* controlledOutputBinaryState;
+      core_tDeviceState* controlledOutputDeviceState;
+      core_tDeviceState* lampMatrixState;
+      core_tDeviceState* alphaDisplayState;
+      core_tDisplayState* displayState;
+      core_tDisplayState* rawDMDState;
+   } core_tGlobalOutputState;
+
+   #define CORE_STATE_REQMASK_GPOUTPUT_BINARY_STATE 0x01
+   #define CORE_STATE_REQMASK_GPOUTPUT_DEVICE_STATE 0x02
+   #define CORE_STATE_REQMASK_LAMP_DEVICE_STATE     0x04
+   #define CORE_STATE_REQMASK_ALPHA_DEVICE_STATE    0x08
+   #define CORE_STATE_REQMASK_DISPLAY_STATE         0x10
+   #define CORE_STATE_REQMASK_RAW_DMD_STATE         0x20
+   #define CORE_STATE_REQMASK_ALL                   0x3F
+};
+
 typedef enum {
 	PINMAME_LOG_LEVEL_DEBUG = 0,
 	PINMAME_LOG_LEVEL_INFO = 1,
@@ -477,3 +562,6 @@ PINMAMEAPI int PinmameGetMaxNVRAM();
 PINMAMEAPI int PinmameGetNVRAM(PinmameNVRAMState* const p_nvramStates);
 PINMAMEAPI int PinmameGetChangedNVRAM(PinmameNVRAMState* const p_nvramStates);
 PINMAMEAPI void PinmameSetUserData(const void* p_userData);
+PINMAMEAPI int PinmameGetStateBlock(PinMame::core_tGlobalOutputState** pp_outputState);
+PINMAMEAPI int PinmameUpdateStateBlock(const unsigned int updateMask);
+

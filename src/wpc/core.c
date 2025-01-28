@@ -3891,7 +3891,7 @@ void core_dmd_render_dmddevice(const int width, const int height, const UINT8* c
 #endif
 
 // Prepare data for VPinMame state block
-#ifdef VPINMAME
+#if defined(VPINMAME) || defined(LIBPINMAME)
 void core_dmd_update_state_block(const struct core_dispLayout* layout, const UINT8* dmdDotRaw, const UINT8* dmdDotLum) {
   if (locals.outputStateBlock && locals.outputStateBlock->displayState) {
     for (unsigned int i = 0; i < locals.outputStateBlock->displayState->nDisplays; i++) {
@@ -4018,7 +4018,7 @@ void core_dmd_video_update(struct mame_bitmap *bitmap, const struct rectangle *c
       core_dmd_render_lpm(layout->length, layout->start, dmdDotLum, dmdDotRaw);
       has_DMD_Video = 1;
     }
-
+    core_dmd_update_state_block(layout, dmdDotRaw, dmdDotLum);
   #elif defined(VPINMAME)
     const int isMainDMD = layout->length >= 128; // Up to 2 main DMDs (1 for all games, except Strike'n Spares which has 2)
     // FIXME check for VPinMame window hidden/shown state, and do not render if hidden
@@ -4030,10 +4030,8 @@ void core_dmd_video_update(struct mame_bitmap *bitmap, const struct rectangle *c
       core_dmd_capture_frame(layout->length, layout->start, dmdDotRaw, raw_dmd_frame_count ,raw_dmd_frames);
     }
     core_dmd_update_state_block(layout, dmdDotRaw, dmdDotLum);
-
   #elif defined(PINMAME)
     core_dmd_render_internal(bitmap, layout->left, layout->top, layout->length, layout->start, dmdDotLum, pmoptions.dmd_antialias && !(layout->type & CORE_DMDNOAA));
-
   #endif
 }
 
