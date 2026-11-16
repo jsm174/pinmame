@@ -31,12 +31,12 @@ onwards** is listed separately below as not expected rather than as missing.
 
 | Status                           | Machines | Share |
 | -------------------------------- | -------: | ----: |
-| Fully working                    |      582 | 69.7% |
+| Fully working                    |      582 | 69.6% |
 | Partially working                |       31 |  3.7% |
 | Emulated but not working         |        1 |  0.1% |
 | Not emulated                     |      142 | 17.0% |
-| Not emulated — released recently |       79 |  9.5% |
-| **Total**                        |  **835** |       |
+| Not emulated — released recently |       80 |  9.6% |
+| **Total**                        |  **836** |       |
 
 ### By decade
 
@@ -47,7 +47,7 @@ onwards** is listed separately below as not expected rather than as missing.
 | 1990s  |   148 |           142 |       3 |           0 |            3 |
 | 2000s  |    25 |            24 |       0 |           0 |            1 |
 | 2010s  |    73 |            24 |       0 |           0 |           49 |
-| 2020s  |    91 |             1 |       0 |           0 |           90 |
+| 2020s  |    92 |             1 |       0 |           0 |           91 |
 
 ## Fully working (582)
 
@@ -838,7 +838,7 @@ future work.
 | Shoot 'n Scoot                              | 2020 | Multimorphic              | LCD          |
 | Teenage Mutant Ninja Turtles                | 2020 | Stern                     | LCD          |
 
-## Not emulated — released recently (79)
+## Not emulated — released recently (80)
 
 No driver, and not expected to get one soon: see the note on end-of-life machines above.
 
@@ -921,6 +921,7 @@ No driver, and not expected to get one soon: see the note on end-of-life machine
 | Sonic the Hedgehog                                | 2026 | Jersey Jack Pinball      | LCD          |
 | Teenage Mutant Ninja Turtles: Battle in the Sewer | 2026 | Wonderland Amusements    | LCD          |
 | The 3 Musketeers                                  | 2026 | HEXA Pinball             | LCD          |
+| The Goonies                                       | 2026 | Spooky Pinball           | LCD          |
 | Transformers: More Than Meets the Eye             | 2026 | Stern                    | LCD          |
 | Yukon Yeti                                        | 2026 | Turner Pinball           | LCD          |
 
@@ -1152,8 +1153,8 @@ scripts/gen_supported_machines.py
 
 The script reads a cached copy of OPDB and re-downloads only with `--refresh`; `--check`
 fails if this file is out of date. Machine data comes from the OPDB snapshot of
-**2026-11-09**; driver data from `src/wpc` at the commit this file was generated from, on
-**2026-11-09**.
+**2026-11-16**; driver data from `src/wpc` at the commit this file was generated from, on
+**2026-11-16**.
 
 A machine is one OPDB *group*, so a title and its remakes are one row, dated and credited
 to the original. Its status is that of the *worst* of its ROM sets, so "fully working"
